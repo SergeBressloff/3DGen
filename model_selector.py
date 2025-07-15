@@ -11,6 +11,7 @@ class ModelSelector:
             "space.glb": "A sci-fi style spaceship model",
             "tree.glb": "A realistic 3D model of an oak tree",
             "lion.glb": "A 3D model of a lion",
+            "heart.glb": "A 3D model of a human heart",
         }
 
         self.descriptions = list(self.model_descriptions.values())

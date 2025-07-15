@@ -10,11 +10,11 @@ import os, sys, multiprocessing
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("AI Desktop Prototype")
+        self.setWindowTitle("Speak and See 3D")
         self.setGeometry(200, 200, 400, 300)
 
-        self.transcription_label = QLabel("Press record to transcribe...")
-        self.record_btn = QPushButton("Record & Transcribe")
+        self.transcription_label = QLabel("Press Speak to see in 3D")
+        self.record_btn = QPushButton("Speak")
 
         self.record_btn.clicked.connect(self.handle_record)
 
@@ -26,6 +26,9 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.transcription_label)
         layout.addWidget(self.record_btn)
         layout.addWidget(self.viewer)
+        layout.setStretch(0, 0)  # transcription_label
+        layout.setStretch(1, 0)  # record_btn
+        layout.setStretch(2, 1)  # viewer gets all extra space
 
         container = QWidget()
         container.setLayout(layout)
