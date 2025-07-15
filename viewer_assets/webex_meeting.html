@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Webex Meeting</title>
+  <script src="./webex.min.js"></script>
+  <style>
+    html, body { height: 100%; margin: 0; padding: 0; }
+    #webex-app { width: 100vw; height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="webex-app">
+    <video id="local-video" autoplay muted playsinline style="width: 200px; border: 1px solid #ccc;"></video>
+    <video id="remote-video" autoplay playsinline style="width: 400px; border: 1px solid #ccc;"></video>
+  </div>
+  <script>
+    // Placeholder: Python will inject access token and meeting info via QWebChannel or URL params
+    let accessToken = null; // To be set by Python
+    let meetingDestination = null; // To be set by Python (e.g., meeting URL or SIP)
+
+    // Example: initialize Webex SDK (will not join meeting until accessToken and meetingDestination are set)
+    function joinMeeting(token, destination) {
+      if (!token || !destination) {
+        document.getElementById('webex-app').innerText = 'Missing access token or meeting info.';
+        return;
+      }
+      const webex = window.Webex.init({
+        credentials: { access_token: token }
+      });
+      webex.meetings.register().then(() => {
+        return webex.meetings.create(destination);
+      }).then(meeting => {
+        // Join the meeting
+        return meeting.join().then(() => meeting);
+      }).then(meeting => {
+        // Get local media using browser API
+        return navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+          .then((localStream) => {
+            return meeting.addMedia({
+              localStream,
+              mediaSettings: {
+                sendAudio: true,
+                sendVideo: true,
+                sendShare: false,
+                receiveVideo: true,
+                receiveAudio: true,
+                receiveShare: false
+              }
+            });
+          });
+      }).then(() => {
+        // Attach local stream to local video element
+        document.getElementById('local-video').srcObject = localStream;
+        // Listen for remote stream
+        meeting.on('media:ready', (media) => {
+          console.log('media:ready', media);
+          if (media.type === 'remoteVideo') {
+            document.getElementById('remote-video').srcObject = media.stream;
+          }
+          if (media.type === 'localVideo') {
+            document.getElementById('local-video').srcObject = media.stream;
+          }
+        });
+        document.getElementById('webex-app').insertAdjacentHTML('beforeend', '<div>Meeting started! (Video/audio should be visible if supported)</div>');
+      }).catch(e => {
+        document.getElementById('webex-app').innerText = 'Error: ' + JSON.stringify(e);
+        console.error(e);
+      });
+    }
+    // Expose joinMeeting for Python to call via QWebChannel
+    window.joinMeeting = joinMeeting;
+
+
+  </script>
+</body>
+</html> 

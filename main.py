@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QLabel, QLineEdit, QHBoxLayout, QSizePolicy, QSpacerItem
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QFont
 from webex_integration import WebexLoginWidget
 import webbrowser
@@ -129,8 +129,19 @@ class MainWindow(QMainWindow):
 
     def handle_webex_token(self, token):
         print("Webex access token:", token)
-        meeting_url = "https://meet1427.webex.com/meet/pr23652216204"
-        self.webex_widget.load_meeting(meeting_url)
+        meeting_url = "pr23652216204@meet1427.webex.com"
+        self.webex_widget.webview.load(QUrl("http://localhost:8001/webex_meeting.html"))
+
+        def inject_js():
+            # Escape single quotes in token and URL for JS safety
+            safe_token = token.replace("'", "\\'")
+            safe_url = meeting_url.replace("'", "\\'")
+            js = f"joinMeeting('{safe_token}', '{safe_url}')"
+            self.webex_widget.webview.page().runJavaScript(js)
+            # Disconnect after first use
+            self.webex_widget.webview.loadFinished.disconnect(inject_js)
+
+        self.webex_widget.webview.loadFinished.connect(inject_js)
 
 
 if __name__ == '__main__':

@@ -6,6 +6,8 @@ import requests
 from PySide6.QtCore import Signal, QObject, QUrl
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QWidget, QVBoxLayout
+import os
+from http.server import SimpleHTTPRequestHandler
 
 # Webex OAuth2 credentials
 CLIENT_ID = "C2b7139e803362d903b975c245afe0e6edec2848b7653f4428e3d9a1e9195236a"
@@ -62,6 +64,27 @@ class OAuthCodeReceiver(QObject):
             self._server.server_close()
             self._server = None
 
+class AssetHTTPServer:
+    """Serves the viewer_assets directory on localhost:8000."""
+    def __init__(self, directory):
+        self.directory = directory
+        self._server = None
+        self._thread = None
+
+    def start(self):
+        if self._server:
+            return  # Already running
+        handler = lambda *args, **kwargs: SimpleHTTPRequestHandler(*args, directory=self.directory, **kwargs)
+        self._server = HTTPServer(('localhost', 8001), handler)
+        self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
+        self._thread.start()
+
+    def stop(self):
+        if self._server:
+            self._server.shutdown()
+            self._server.server_close()
+            self._server = None
+
 class WebexLoginWidget(QWidget):
     access_token_received = Signal(str)
 
@@ -71,6 +94,11 @@ class WebexLoginWidget(QWidget):
         layout = QVBoxLayout(self)
         layout.addWidget(self.webview)
         self.setLayout(layout)
+
+        # Start HTTP server for viewer_assets
+        assets_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'viewer_assets'))
+        self.asset_server = AssetHTTPServer(directory=assets_path)
+        self.asset_server.start()
 
         self.oauth_receiver = OAuthCodeReceiver()
         self.oauth_receiver.code_received.connect(self.on_code_received)
