@@ -1,6 +1,8 @@
 from PySide6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QLabel, QLineEdit, QHBoxLayout, QSizePolicy, QSpacerItem
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
+from webex_integration import WebexLoginWidget
+import webbrowser
 from whisper_runner import transcribe_whisper
 from audio_recorder import AudioRecorder
 from model_viewer import ModelViewer
@@ -51,30 +53,45 @@ class MainWindow(QMainWindow):
         self.viewer = ModelViewer(model_path)
         self.selector = ModelSelector()
 
+        # Webex Login
+        self.webex_widget = WebexLoginWidget()
+        self.webex_widget.access_token_received.connect(self.handle_webex_token)
+
         self.record_btn.setFixedWidth(120)
         self.search_btn.setFixedWidth(120)
         self.text_input.setMinimumWidth(300)
         self.text_input.setMaximumWidth(480)
         self.text_input.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
-        layout = QVBoxLayout()
-        layout.addWidget(self.title)  
-        layout.addWidget(self.transcription_label)
-        layout.addWidget(self.record_btn)
-        layout.addWidget(self.text_label)
-        layout.addLayout(self.text_input_layout)
-        layout.addWidget(self.search_result)
-        layout.addWidget(self.viewer)
-        layout.setStretch(0, 0)  # title
-        layout.setStretch(1, 0)  # transcription_label
-        layout.setStretch(2, 0)  # record_btn
-        layout.setStretch(3, 0)  # text_label
-        layout.setStretch(4, 0)  # text_input
-        layout.setStretch(5, 0)  # search_result
-        layout.setStretch(6, 1)  # viewer gets all extra space
+        # --- Layout Refactor ---
+        # Controls/top area (title, buttons, etc.)
+        controls_layout = QVBoxLayout()
+        controls_layout.addWidget(self.title)
+        controls_layout.addWidget(self.transcription_label)
+        controls_layout.addWidget(self.record_btn)
+        controls_layout.addWidget(self.text_label)
+        controls_layout.addLayout(self.text_input_layout)
+        controls_layout.addWidget(self.search_result)
+        controls_widget = QWidget()
+        controls_widget.setLayout(controls_layout)
+
+        # Bottom area: Webex (left) and Model Viewer (right)
+        bottom_layout = QHBoxLayout()
+        self.webex_widget.setMaximumWidth(350)  # Adjust as needed
+        bottom_layout.addWidget(self.webex_widget)
+        bottom_layout.addWidget(self.viewer)
+        bottom_widget = QWidget()
+        bottom_widget.setLayout(bottom_layout)
+
+        # Main vertical layout
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(controls_widget)
+        main_layout.addWidget(bottom_widget)
+        main_layout.setStretch(0, 0)  # controls
+        main_layout.setStretch(1, 1)  # bottom area expands
 
         container = QWidget()
-        container.setLayout(layout)
+        container.setLayout(main_layout)
         self.setCentralWidget(container)
 
     def toggle_recording(self):
@@ -109,6 +126,11 @@ class MainWindow(QMainWindow):
             self.viewer.load_model(model_file)
         else:
             self.search_result.setText(f"{text} (no model match)")
+
+    def handle_webex_token(self, token):
+        print("Webex access token:", token)
+        meeting_url = "https://meet1427.webex.com/meet/pr23652216204"
+        self.webex_widget.load_meeting(meeting_url)
 
 
 if __name__ == '__main__':
