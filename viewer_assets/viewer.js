@@ -42,7 +42,7 @@ function loadModel(modelFile) {
             const center = box.getCenter(new THREE.Vector3());
 
             currentModel.position.sub(center);
-            camera.position.set(0, 0, size * 1.5);
+            camera.position.set(0, 0, size * 0.8);
             camera.lookAt(0, 0, 0);
             controls.update();
         },
